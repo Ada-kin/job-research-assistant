@@ -5,14 +5,19 @@ import type {
   CvData,
   CvSection,
   CvVersion,
-  Settings
+  EducationItem,
+  ExperienceItem,
+  InterestItem,
+  LanguageItem,
+  Settings,
+  SkillItem
 } from './types';
 
 export const STORAGE_KEY = 'job_research_assistant_v2';
 const LEGACY_KEY = 'cv_builder_data_v1';
 const SESSION_API_KEY = 'job_research_assistant_api_key_session';
 
-const EMPTY_FEEDBACK: Record<CvSection, string> = {
+export const EMPTY_FEEDBACK: Record<CvSection, string> = {
   personal: '',
   profile: '',
   experiences: '',
@@ -20,32 +25,6 @@ const EMPTY_FEEDBACK: Record<CvSection, string> = {
   skills: '',
   languages: '',
   interests: ''
-};
-
-export const DEFAULT_CV: CvData = {
-  personal: {
-    fullName: '',
-    title: '',
-    email: '',
-    phone: '',
-    location: '',
-    website: '',
-    linkedin: '',
-    github: ''
-  },
-  profile: '',
-  experiences: '',
-  education: '',
-  skills: '',
-  languages: '',
-  interests: ''
-};
-
-export const DEFAULT_SETTINGS: Settings = {
-  openaiApiKey: '',
-  storeApiKey: false,
-  defaultLanguage: 'fr',
-  defaultTone: 'NEUTRE'
 };
 
 function uid(): string {
@@ -60,36 +39,132 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
-function linesFromLegacy(items: unknown): string {
-  if (!Array.isArray(items)) {
-    return '';
-  }
+function parseLines(input: string): string[] {
+  return input
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
 
-  const lines: string[] = [];
-  for (const item of items) {
-    if (!item || typeof item !== 'object') {
-      continue;
-    }
-    const record = item as Record<string, unknown>;
-    const parts = [record.role, record.company, record.degree, record.institution]
-      .filter((v) => typeof v === 'string' && v.trim())
-      .map((v) => String(v).trim());
+function normalizeExperience(item?: Partial<ExperienceItem>): ExperienceItem {
+  return {
+    id: item?.id || uid(),
+    company: item?.company || '',
+    role: item?.role || '',
+    location: item?.location || '',
+    startDate: item?.startDate || '',
+    endDate: item?.endDate || '',
+    description: item?.description || '',
+    highlights: Array.isArray(item?.highlights) ? item!.highlights.filter(Boolean) : []
+  };
+}
 
-    const description = typeof record.description === 'string' ? record.description.trim() : '';
-    const combined = [parts.join(' - '), description].filter(Boolean).join(': ');
-    if (combined) {
-      lines.push(combined);
-    }
+function normalizeEducation(item?: Partial<EducationItem>): EducationItem {
+  return {
+    id: item?.id || uid(),
+    institution: item?.institution || '',
+    degree: item?.degree || '',
+    field: item?.field || '',
+    startDate: item?.startDate || '',
+    endDate: item?.endDate || '',
+    description: item?.description || ''
+  };
+}
 
-    if (Array.isArray(record.highlights)) {
-      for (const h of record.highlights) {
-        if (typeof h === 'string' && h.trim()) {
-          lines.push(h.trim());
-        }
-      }
-    }
-  }
-  return lines.join('\n');
+function normalizeSkill(item?: Partial<SkillItem>): SkillItem {
+  const level = item?.level || '';
+  return {
+    id: item?.id || uid(),
+    name: item?.name || '',
+    level: ['beginner', 'intermediate', 'advanced', 'expert', ''].includes(level) ? level : ''
+  } as SkillItem;
+}
+
+function normalizeLanguage(item?: Partial<LanguageItem>): LanguageItem {
+  const level = item?.level || '';
+  return {
+    id: item?.id || uid(),
+    name: item?.name || '',
+    level: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native', ''].includes(level) ? level : ''
+  } as LanguageItem;
+}
+
+function normalizeInterest(item?: Partial<InterestItem>): InterestItem {
+  return {
+    id: item?.id || uid(),
+    name: item?.name || ''
+  };
+}
+
+export const DEFAULT_CV: CvData = {
+  personal: {
+    fullName: '',
+    title: '',
+    email: '',
+    phone: '',
+    location: '',
+    website: '',
+    linkedin: '',
+    github: ''
+  },
+  profile: '',
+  experiences: [],
+  education: [],
+  skills: [],
+  languages: [],
+  interests: []
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  openaiApiKey: '',
+  storeApiKey: false,
+  defaultLanguage: 'fr',
+  defaultTone: 'NEUTRE'
+};
+
+function normalizeCvData(input?: Partial<CvData> & Record<string, unknown>): CvData {
+  const experiences = Array.isArray(input?.experiences)
+    ? input.experiences.map((item) => normalizeExperience(item))
+    : typeof input?.experiences === 'string'
+      ? parseLines(input.experiences).map((line) => normalizeExperience({ role: line }))
+      : [];
+
+  const education = Array.isArray(input?.education)
+    ? input.education.map((item) => normalizeEducation(item))
+    : typeof input?.education === 'string'
+      ? parseLines(input.education).map((line) => normalizeEducation({ degree: line }))
+      : [];
+
+  const skills = Array.isArray(input?.skills)
+    ? input.skills.map((item) => normalizeSkill(item))
+    : typeof input?.skills === 'string'
+      ? parseLines(input.skills).map((line) => normalizeSkill({ name: line }))
+      : [];
+
+  const languages = Array.isArray(input?.languages)
+    ? input.languages.map((item) => normalizeLanguage(item))
+    : typeof input?.languages === 'string'
+      ? parseLines(input.languages).map((line) => normalizeLanguage({ name: line }))
+      : [];
+
+  const interests = Array.isArray(input?.interests)
+    ? input.interests.map((item) => normalizeInterest(item))
+    : typeof input?.interests === 'string'
+      ? parseLines(input.interests).map((line) => normalizeInterest({ name: line }))
+      : [];
+
+  return {
+    personal: {
+      ...DEFAULT_CV.personal,
+      ...(input?.personal || {})
+    },
+    profile: typeof input?.profile === 'string' ? input.profile : '',
+    experiences,
+    education,
+    skills,
+    languages,
+    interests
+  };
 }
 
 function normalizeVersion(version: CvVersion): CvVersion {
@@ -97,7 +172,7 @@ function normalizeVersion(version: CvVersion): CvVersion {
     id: version.id || uid(),
     label: version.label || 'Version sans titre',
     createdAt: version.createdAt || nowIso(),
-    data: { ...deepClone(DEFAULT_CV), ...version.data, personal: { ...DEFAULT_CV.personal, ...(version.data?.personal || {}) } },
+    data: normalizeCvData(version.data as unknown as Partial<CvData> & Record<string, unknown>),
     aiFeedback: { ...EMPTY_FEEDBACK, ...(version.aiFeedback || {}) }
   };
 }
@@ -160,29 +235,64 @@ function fromLegacy(raw: string): AppState {
   const legacy = JSON.parse(raw) as Record<string, unknown>;
   const personal = typeof legacy.personal === 'object' && legacy.personal ? (legacy.personal as Record<string, unknown>) : {};
 
+  const experiences = Array.isArray(legacy.experiences)
+    ? legacy.experiences.map((x) => {
+        const item = (x || {}) as Record<string, unknown>;
+        return normalizeExperience({
+          company: String(item.company || ''),
+          role: String(item.role || ''),
+          location: String(item.location || ''),
+          startDate: String(item.startDate || ''),
+          endDate: String(item.endDate || ''),
+          description: String(item.description || ''),
+          highlights: Array.isArray(item.highlights) ? item.highlights.map((h) => String(h)) : []
+        });
+      })
+    : [];
+
+  const education = Array.isArray(legacy.education)
+    ? legacy.education.map((x) => {
+        const item = (x || {}) as Record<string, unknown>;
+        return normalizeEducation({
+          institution: String(item.institution || ''),
+          degree: String(item.degree || ''),
+          field: String(item.field || ''),
+          startDate: String(item.startDate || ''),
+          endDate: String(item.endDate || ''),
+          description: String(item.description || '')
+        });
+      })
+    : [];
+
+  const skills = Array.isArray(legacy.skills)
+    ? legacy.skills.map((x) => normalizeSkill({ name: String((x as Record<string, unknown>)?.name || '') }))
+    : [];
+
+  const languages = Array.isArray(legacy.languages)
+    ? legacy.languages.map((x) => normalizeLanguage({ name: String((x as Record<string, unknown>)?.name || '') }))
+    : [];
+
+  const interests = Array.isArray(legacy.interests)
+    ? legacy.interests.map((x) => normalizeInterest({ name: String((x as Record<string, unknown>)?.name || '') }))
+    : [];
+
   const migratedCv: CvData = {
     personal: {
-      fullName: typeof personal.fullName === 'string' ? personal.fullName : '',
-      title: typeof personal.title === 'string' ? personal.title : '',
-      email: typeof personal.email === 'string' ? personal.email : '',
-      phone: typeof personal.phone === 'string' ? personal.phone : '',
-      location: typeof personal.location === 'string' ? personal.location : '',
-      website: typeof personal.website === 'string' ? personal.website : '',
-      linkedin: typeof personal.linkedin === 'string' ? personal.linkedin : '',
-      github: typeof personal.github === 'string' ? personal.github : ''
+      fullName: String(personal.fullName || ''),
+      title: String(personal.title || ''),
+      email: String(personal.email || ''),
+      phone: String(personal.phone || ''),
+      location: String(personal.location || ''),
+      website: String(personal.website || ''),
+      linkedin: String(personal.linkedin || ''),
+      github: String(personal.github || '')
     },
-    profile: typeof legacy.profile === 'string' ? legacy.profile : '',
-    experiences: linesFromLegacy(legacy.experiences),
-    education: linesFromLegacy(legacy.education),
-    skills: Array.isArray(legacy.skills)
-      ? legacy.skills.map((s) => (typeof s === 'object' && s && typeof (s as Record<string, unknown>).name === 'string' ? String((s as Record<string, unknown>).name) : '')).filter(Boolean).join('\n')
-      : '',
-    languages: Array.isArray(legacy.languages)
-      ? legacy.languages.map((s) => (typeof s === 'object' && s && typeof (s as Record<string, unknown>).name === 'string' ? String((s as Record<string, unknown>).name) : '')).filter(Boolean).join('\n')
-      : '',
-    interests: Array.isArray(legacy.interests)
-      ? legacy.interests.map((s) => (typeof s === 'object' && s && typeof (s as Record<string, unknown>).name === 'string' ? String((s as Record<string, unknown>).name) : '')).filter(Boolean).join('\n')
-      : ''
+    profile: String(legacy.profile || ''),
+    experiences,
+    education,
+    skills,
+    languages,
+    interests
   };
 
   const version: CvVersion = {
@@ -222,14 +332,12 @@ export function loadState(): AppState {
           ? parsed.cv.currentVersionId
           : versions[0].id;
 
-      const draft = { ...deepClone(DEFAULT_CV), ...(parsed.cv?.draft || {}), personal: { ...DEFAULT_CV.personal, ...(parsed.cv?.draft?.personal || {}) } };
-
       return {
         version: '2.0',
         updatedAt: parsed.updatedAt || nowIso(),
         settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
         cv: {
-          draft,
+          draft: normalizeCvData((parsed.cv?.draft || {}) as Partial<CvData> & Record<string, unknown>),
           currentVersionId,
           versions
         },
@@ -278,11 +386,9 @@ export function readApiKey(state: AppState): string {
   if (state.settings.openaiApiKey) {
     return state.settings.openaiApiKey;
   }
-
   if (typeof window === 'undefined') {
     return '';
   }
-
   return window.sessionStorage.getItem(SESSION_API_KEY) || '';
 }
 

@@ -5,7 +5,7 @@ import { mapOpenAIError, requestFeedback } from '@/lib/openai';
 const schema = z.object({
   apiKey: z.string().min(20),
   section: z.enum(['personal', 'profile', 'experiences', 'education', 'skills', 'languages', 'interests']),
-  sectionData: z.union([z.string(), z.record(z.any())]),
+  sectionData: z.any(),
   jobContext: z
     .object({
       title: z.string().optional(),

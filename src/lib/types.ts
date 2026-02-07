@@ -29,14 +29,52 @@ export interface CvPersonal {
   github: string;
 }
 
+export interface ExperienceItem {
+  id: string;
+  company: string;
+  role: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  highlights: string[];
+}
+
+export interface EducationItem {
+  id: string;
+  institution: string;
+  degree: string;
+  field: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+export interface SkillItem {
+  id: string;
+  name: string;
+  level: 'beginner' | 'intermediate' | 'advanced' | 'expert' | '';
+}
+
+export interface LanguageItem {
+  id: string;
+  name: string;
+  level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'Native' | '';
+}
+
+export interface InterestItem {
+  id: string;
+  name: string;
+}
+
 export interface CvData {
   personal: CvPersonal;
   profile: string;
-  experiences: string;
-  education: string;
-  skills: string;
-  languages: string;
-  interests: string;
+  experiences: ExperienceItem[];
+  education: EducationItem[];
+  skills: SkillItem[];
+  languages: LanguageItem[];
+  interests: InterestItem[];
 }
 
 export interface CvVersion {
