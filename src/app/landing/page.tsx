@@ -2,12 +2,12 @@
 
 import styles from './landing.module.css';
 
-const fallbackCheckoutUrl = '/checkout';
-
 function CtaButton({ label }: { label: string }) {
+  const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL?.trim();
+
   const handleClick = () => {
     console.log('[landing] cta_click', { ts: Date.now() });
-    window.location.href = fallbackCheckoutUrl;
+    window.location.href = checkoutUrl || '/checkout';
   };
 
   return (
