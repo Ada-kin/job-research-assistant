@@ -35,6 +35,7 @@ export default function DashboardPage() {
           <Link className="button-like" href="/cv">Editer le CV</Link>
           <Link className="button-like" href="/applications">Suivre les candidatures</Link>
           <Link className="button-like" href="/settings">Configurer l'IA</Link>
+          <Link className="button-like" href="/landing">Landing V1</Link>
         </div>
       </section>
 
