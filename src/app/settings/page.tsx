@@ -21,13 +21,18 @@ export default function SettingsPage() {
         <h2>OpenAI</h2>
         <div className="field">
           <label>Cle API</label>
-          <input type="password" value={state.settings.openaiApiKey} onChange={(e) => updateSettings({ openaiApiKey: e.target.value })} placeholder="sk-..." />
+          <input
+            type="password"
+            value={state.settings.openaiApiKey}
+            onChange={(e) => updateSettings({ openaiApiKey: e.target.value })}
+            placeholder="sk-... (laisser vide pour conserver la cle stockee)"
+          />
         </div>
         <div className="field">
-          <label>Stocker la cle localement</label>
+          <label>Stocker la cle cote serveur (chiffree)</label>
           <select value={String(state.settings.storeApiKey)} onChange={(e) => updateSettings({ storeApiKey: e.target.value === 'true' })}>
-            <option value="false">Non (session)</option>
-            <option value="true">Oui (localStorage)</option>
+            <option value="false">Non</option>
+            <option value="true">Oui</option>
           </select>
         </div>
       </section>

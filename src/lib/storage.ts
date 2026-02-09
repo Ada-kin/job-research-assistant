@@ -13,10 +13,6 @@ import type {
   SkillItem
 } from './types';
 
-export const STORAGE_KEY = 'job_research_assistant_v2';
-const LEGACY_KEY = 'cv_builder_data_v1';
-const SESSION_API_KEY = 'job_research_assistant_api_key_session';
-
 export const EMPTY_FEEDBACK: Record<CvSection, string> = {
   personal: '',
   profile: '',
@@ -55,7 +51,8 @@ function normalizeExperience(item?: Partial<ExperienceItem>): ExperienceItem {
     startDate: item?.startDate || '',
     endDate: item?.endDate || '',
     description: item?.description || '',
-    highlights: Array.isArray(item?.highlights) ? item!.highlights.filter(Boolean) : []
+    highlights: Array.isArray(item?.highlights) ? item.highlights.filter(Boolean) : [],
+    hidden: Boolean(item?.hidden)
   };
 }
 
@@ -230,166 +227,63 @@ export function createInitialState(): AppState {
   };
 }
 
-function fromLegacy(raw: string): AppState {
-  const initial = createInitialState();
-  const legacy = JSON.parse(raw) as Record<string, unknown>;
-  const personal = typeof legacy.personal === 'object' && legacy.personal ? (legacy.personal as Record<string, unknown>) : {};
+export function normalizeAppState(input?: Partial<AppState>): AppState {
+  const base = createInitialState();
 
-  const experiences = Array.isArray(legacy.experiences)
-    ? legacy.experiences.map((x) => {
-        const item = (x || {}) as Record<string, unknown>;
-        return normalizeExperience({
-          company: String(item.company || ''),
-          role: String(item.role || ''),
-          location: String(item.location || ''),
-          startDate: String(item.startDate || ''),
-          endDate: String(item.endDate || ''),
-          description: String(item.description || ''),
-          highlights: Array.isArray(item.highlights) ? item.highlights.map((h) => String(h)) : []
-        });
-      })
-    : [];
+  const versions = Array.isArray(input?.cv?.versions)
+    ? input.cv.versions.map((version) => normalizeVersion(version))
+    : base.cv.versions;
 
-  const education = Array.isArray(legacy.education)
-    ? legacy.education.map((x) => {
-        const item = (x || {}) as Record<string, unknown>;
-        return normalizeEducation({
-          institution: String(item.institution || ''),
-          degree: String(item.degree || ''),
-          field: String(item.field || ''),
-          startDate: String(item.startDate || ''),
-          endDate: String(item.endDate || ''),
-          description: String(item.description || '')
-        });
-      })
-    : [];
+  const currentVersionId =
+    input?.cv?.currentVersionId && versions.some((v) => v.id === input.cv?.currentVersionId)
+      ? input.cv.currentVersionId
+      : versions[0].id;
 
-  const skills = Array.isArray(legacy.skills)
-    ? legacy.skills.map((x) => normalizeSkill({ name: String((x as Record<string, unknown>)?.name || '') }))
-    : [];
-
-  const languages = Array.isArray(legacy.languages)
-    ? legacy.languages.map((x) => normalizeLanguage({ name: String((x as Record<string, unknown>)?.name || '') }))
-    : [];
-
-  const interests = Array.isArray(legacy.interests)
-    ? legacy.interests.map((x) => normalizeInterest({ name: String((x as Record<string, unknown>)?.name || '') }))
-    : [];
-
-  const migratedCv: CvData = {
-    personal: {
-      fullName: String(personal.fullName || ''),
-      title: String(personal.title || ''),
-      email: String(personal.email || ''),
-      phone: String(personal.phone || ''),
-      location: String(personal.location || ''),
-      website: String(personal.website || ''),
-      linkedin: String(personal.linkedin || ''),
-      github: String(personal.github || '')
+  return {
+    version: '2.0',
+    updatedAt: input?.updatedAt || nowIso(),
+    settings: { ...DEFAULT_SETTINGS, ...(input?.settings || {}) },
+    cv: {
+      draft: normalizeCvData((input?.cv?.draft || {}) as Partial<CvData> & Record<string, unknown>),
+      currentVersionId,
+      versions
     },
-    profile: String(legacy.profile || ''),
-    experiences,
-    education,
-    skills,
-    languages,
-    interests
+    applications: Array.isArray(input?.applications) ? input.applications.map((item) => normalizeApplication(item)) : [],
+    coverLetters: Array.isArray(input?.coverLetters) ? input.coverLetters.map((item) => normalizeCoverLetter(item)) : []
   };
-
-  const version: CvVersion = {
-    id: uid(),
-    label: 'Import ancien CV Builder',
-    createdAt: nowIso(),
-    data: migratedCv,
-    aiFeedback: deepClone(EMPTY_FEEDBACK)
-  };
-
-  initial.cv = {
-    draft: deepClone(migratedCv),
-    currentVersionId: version.id,
-    versions: [version]
-  };
-
-  return initial;
 }
 
-export function loadState(): AppState {
+export async function loadState(): Promise<AppState> {
   if (typeof window === 'undefined') {
     return createInitialState();
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<AppState>;
-      const base = createInitialState();
-
-      const versions = Array.isArray(parsed.cv?.versions)
-        ? parsed.cv.versions.map((version) => normalizeVersion(version))
-        : base.cv.versions;
-
-      const currentVersionId =
-        parsed.cv?.currentVersionId && versions.some((v) => v.id === parsed.cv?.currentVersionId)
-          ? parsed.cv.currentVersionId
-          : versions[0].id;
-
-      return {
-        version: '2.0',
-        updatedAt: parsed.updatedAt || nowIso(),
-        settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
-        cv: {
-          draft: normalizeCvData((parsed.cv?.draft || {}) as Partial<CvData> & Record<string, unknown>),
-          currentVersionId,
-          versions
-        },
-        applications: Array.isArray(parsed.applications) ? parsed.applications.map((item) => normalizeApplication(item)) : [],
-        coverLetters: Array.isArray(parsed.coverLetters) ? parsed.coverLetters.map((item) => normalizeCoverLetter(item)) : []
-      };
+    const response = await fetch('/api/state', { cache: 'no-store' });
+    if (!response.ok) {
+      return createInitialState();
     }
-
-    const legacy = window.localStorage.getItem(LEGACY_KEY);
-    if (legacy) {
-      return fromLegacy(legacy);
-    }
-
-    return createInitialState();
+    const payload = (await response.json()) as { state?: Partial<AppState> };
+    return normalizeAppState(payload.state);
   } catch {
     return createInitialState();
   }
 }
 
-export function persistState(state: AppState): void {
+export async function persistState(state: AppState): Promise<void> {
   if (typeof window === 'undefined') {
     return;
   }
 
-  const toStore: AppState = {
-    ...state,
-    updatedAt: nowIso(),
-    settings: {
-      ...state.settings,
-      openaiApiKey: state.settings.storeApiKey ? state.settings.openaiApiKey : ''
-    }
-  };
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
-
-  if (state.settings.openaiApiKey) {
-    if (state.settings.storeApiKey) {
-      window.sessionStorage.removeItem(SESSION_API_KEY);
-    } else {
-      window.sessionStorage.setItem(SESSION_API_KEY, state.settings.openaiApiKey);
-    }
-  }
+  await fetch('/api/state', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state })
+  });
 }
 
 export function readApiKey(state: AppState): string {
-  if (state.settings.openaiApiKey) {
-    return state.settings.openaiApiKey;
-  }
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  return window.sessionStorage.getItem(SESSION_API_KEY) || '';
+  return state.settings.openaiApiKey;
 }
 
 export function uidFactory(): string {

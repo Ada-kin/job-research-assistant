@@ -12,13 +12,16 @@ Application Next.js + TypeScript pour piloter une recherche d'emploi :
 ## Prerequis
 
 - Node.js 20+
+- PostgreSQL
 - Gotenberg v8 (local ou distant)
-- Une cle OpenAI saisie par l'utilisateur dans l'interface
+- OAuth Google configure (client id / secret)
 
 ## Installation
 
 ```bash
 npm install
+npx prisma generate
+npx prisma migrate dev
 ```
 
 ## Lancement
@@ -31,7 +34,12 @@ Puis ouvrir `http://localhost:3000`.
 
 ## Variables d'environnement (optionnel)
 
-- `GOTENBERG_URL` (defaut: `http://localhost:3000`)
+- `DATABASE_URL` (obligatoire)
+- `AUTH_SECRET` (obligatoire)
+- `GOOGLE_CLIENT_ID` (obligatoire)
+- `GOOGLE_CLIENT_SECRET` (obligatoire)
+- `OPENAI_KEY_ENCRYPTION_SECRET` (obligatoire, 32 bytes utf8 ou base64)
+- `GOTENBERG_URL` (defaut: `http://localhost:3001`)
 - `PDF_TIMEOUT_MS` (defaut: `15000`)
 - `OPENAI_MODEL` (defaut: `gpt-4.1-mini`)
 - `OPENAI_TIMEOUT_MS` (defaut: `20000`)
@@ -45,6 +53,6 @@ Puis ouvrir `http://localhost:3000`.
 
 ## Notes securite
 
-- La cle OpenAI est fournie par l'utilisateur.
-- La cle n'est jamais stockee cote serveur.
-- Le stockage local de la cle est optionnel (parametre utilisateur).
+- Authentification via Google OAuth.
+- La cle OpenAI peut etre conservee cote serveur et est chiffree (AES-256-GCM).
+- La cle OpenAI n'est jamais retournee au client apres stockage.

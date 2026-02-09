@@ -23,6 +23,7 @@ export function renderCvHtml(cv: CvData): string {
     .join('<span class="sep">|</span>');
 
   const experiencesHtml = cv.experiences
+    .filter((item) => !item.hidden)
     .map((item) => {
       const highlights = item.highlights.map((h) => `<li>${esc(h)}</li>`).join('');
       return `

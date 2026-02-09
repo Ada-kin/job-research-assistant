@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/auth';
 
 const schema = z.object({
   html: z.string().min(50).max(900000),
@@ -27,6 +28,11 @@ function hasExternalAssets(html: string): boolean {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { html, fileName } = schema.parse(await request.json());
 

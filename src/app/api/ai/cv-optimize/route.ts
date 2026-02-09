@@ -1,18 +1,36 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/auth';
 import { mapOpenAIError, requestCvOptimization } from '@/lib/openai';
+import { resolveUserOpenAiApiKey } from '@/lib/server-state';
 
 const schema = z.object({
-  apiKey: z.string().min(20),
+  apiKey: z.string().min(20).optional(),
   cvData: z.record(z.any()),
   offerText: z.string().min(20).max(100000),
   targetRole: z.string().optional()
 });
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const payload = schema.parse(await request.json());
-    const result = await requestCvOptimization(payload);
+    const apiKey = await resolveUserOpenAiApiKey(session.user.id, payload.apiKey);
+    if (!apiKey) {
+      return NextResponse.json({ error: 'OpenAI API key missing. Save it in settings.' }, { status: 400 });
+    }
+
+    const result = await requestCvOptimization({
+      apiKey,
+      cvData: payload.cvData,
+      offerText: payload.offerText,
+      targetRole: payload.targetRole
+    });
+
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {

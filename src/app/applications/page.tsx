@@ -62,10 +62,6 @@ export default function ApplicationsPage() {
 
   async function generateLetter() {
     const apiKey = readApiKey(state);
-    if (!apiKey) {
-      setStatus('Ajoute une cle OpenAI dans Parametres.');
-      return;
-    }
     if (!selectedApplication) {
       setStatus('Selectionne une candidature.');
       return;
@@ -86,7 +82,7 @@ export default function ApplicationsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey,
+          ...(apiKey ? { apiKey } : {}),
           cvData: version.data,
           offerText: selectedApplication.offer.offerText,
           tone: state.settings.defaultTone,

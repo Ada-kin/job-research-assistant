@@ -38,6 +38,7 @@ export interface ExperienceItem {
   endDate: string;
   description: string;
   highlights: string[];
+  hidden: boolean;
 }
 
 export interface EducationItem {

@@ -4,7 +4,16 @@ import { useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/app-store';
 import { EMPTY_FEEDBACK, readApiKey, uidFactory } from '@/lib/storage';
 import { renderCvHtml } from '@/lib/cv-html';
-import type { CvOptimizationResponse, CvSection, EducationItem, ExperienceItem, InterestItem, LanguageItem, SkillItem } from '@/lib/types';
+import type {
+  CvOptimizationResponse,
+  CvSection,
+  EducationItem,
+  ExperienceItem,
+  InterestItem,
+  LanguageItem,
+  SkillItem,
+  CvVersion
+} from '@/lib/types';
 
 const SECTION_LABELS: Record<CvSection, string> = {
   personal: 'Identite',
@@ -18,6 +27,7 @@ const SECTION_LABELS: Record<CvSection, string> = {
 
 export default function CvPage() {
   const { state, setState, status, setStatus } = useAppStore();
+
   const [versionLabel, setVersionLabel] = useState('');
   const [feedbackBusy, setFeedbackBusy] = useState<CvSection | null>(null);
   const [optimizeBusy, setOptimizeBusy] = useState(false);
@@ -26,12 +36,12 @@ export default function CvPage() {
 
   const activeVersion = useMemo(
     () => state.cv.versions.find((v) => v.id === state.cv.currentVersionId) || state.cv.versions[0],
-    [state.cv.versions, state.cv.currentVersionId]
+    [state.cv.currentVersionId, state.cv.versions]
   );
 
   const selectedApplication = useMemo(
     () => state.applications.find((a) => a.id === selectedApplicationId) || null,
-    [state.applications, selectedApplicationId]
+    [selectedApplicationId, state.applications]
   );
 
   const previewHtml = useMemo(() => renderCvHtml(state.cv.draft), [state.cv.draft]);
@@ -43,30 +53,108 @@ export default function CvPage() {
         ...prev.cv,
         draft: {
           ...prev.cv.draft,
-          personal: { ...prev.cv.draft.personal, [field]: value }
+          personal: {
+            ...prev.cv.draft.personal,
+            [field]: value
+          }
         }
       }
     }));
   }
 
   function updateExperience(id: string, patch: Partial<ExperienceItem>) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, experiences: prev.cv.draft.experiences.map((x) => (x.id === id ? { ...x, ...patch } : x)) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          experiences: prev.cv.draft.experiences.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        }
+      }
+    }));
+  }
+
+  function moveExperience(id: string, direction: 'up' | 'down') {
+    setState((prev) => {
+      const list = [...prev.cv.draft.experiences];
+      const index = list.findIndex((x) => x.id === id);
+      if (index < 0) {
+        return prev;
+      }
+
+      const target = direction === 'up' ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) {
+        return prev;
+      }
+
+      const tmp = list[index];
+      list[index] = list[target];
+      list[target] = tmp;
+
+      return {
+        ...prev,
+        cv: {
+          ...prev.cv,
+          draft: {
+            ...prev.cv.draft,
+            experiences: list
+          }
+        }
+      };
+    });
   }
 
   function updateEducation(id: string, patch: Partial<EducationItem>) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, education: prev.cv.draft.education.map((x) => (x.id === id ? { ...x, ...patch } : x)) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          education: prev.cv.draft.education.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        }
+      }
+    }));
   }
 
   function updateSkill(id: string, patch: Partial<SkillItem>) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, skills: prev.cv.draft.skills.map((x) => (x.id === id ? { ...x, ...patch } : x)) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          skills: prev.cv.draft.skills.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        }
+      }
+    }));
   }
 
   function updateLanguage(id: string, patch: Partial<LanguageItem>) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, languages: prev.cv.draft.languages.map((x) => (x.id === id ? { ...x, ...patch } : x)) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          languages: prev.cv.draft.languages.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        }
+      }
+    }));
   }
 
   function updateInterest(id: string, patch: Partial<InterestItem>) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, interests: prev.cv.draft.interests.map((x) => (x.id === id ? { ...x, ...patch } : x)) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          interests: prev.cv.draft.interests.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        }
+      }
+    }));
   }
 
   function addExperience() {
@@ -76,7 +164,20 @@ export default function CvPage() {
         ...prev.cv,
         draft: {
           ...prev.cv.draft,
-          experiences: [...prev.cv.draft.experiences, { id: uidFactory(), company: '', role: '', location: '', startDate: '', endDate: '', description: '', highlights: [] }]
+          experiences: [
+            ...prev.cv.draft.experiences,
+            {
+              id: uidFactory(),
+              company: '',
+              role: '',
+              location: '',
+              startDate: '',
+              endDate: '',
+              description: '',
+              highlights: [],
+              hidden: false
+            }
+          ]
         }
       }
     }));
@@ -89,58 +190,196 @@ export default function CvPage() {
         ...prev.cv,
         draft: {
           ...prev.cv.draft,
-          education: [...prev.cv.draft.education, { id: uidFactory(), institution: '', degree: '', field: '', startDate: '', endDate: '', description: '' }]
+          education: [
+            ...prev.cv.draft.education,
+            {
+              id: uidFactory(),
+              institution: '',
+              degree: '',
+              field: '',
+              startDate: '',
+              endDate: '',
+              description: ''
+            }
+          ]
         }
       }
     }));
   }
 
   function addSkill() {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, skills: [...prev.cv.draft.skills, { id: uidFactory(), name: '', level: '' }] } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          skills: [...prev.cv.draft.skills, { id: uidFactory(), name: '', level: '' }]
+        }
+      }
+    }));
   }
 
   function addLanguage() {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, languages: [...prev.cv.draft.languages, { id: uidFactory(), name: '', level: '' }] } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          languages: [...prev.cv.draft.languages, { id: uidFactory(), name: '', level: '' }]
+        }
+      }
+    }));
   }
 
   function addInterest() {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, interests: [...prev.cv.draft.interests, { id: uidFactory(), name: '' }] } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          interests: [...prev.cv.draft.interests, { id: uidFactory(), name: '' }]
+        }
+      }
+    }));
   }
 
   function removeItem(type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) {
-    setState((prev) => ({ ...prev, cv: { ...prev.cv, draft: { ...prev.cv.draft, [type]: prev.cv.draft[type].filter((x) => x.id !== id) } } }));
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        draft: {
+          ...prev.cv.draft,
+          [type]: prev.cv.draft[type].filter((x) => x.id !== id)
+        }
+      }
+    }));
   }
 
-  function saveVersion() {
+  function createVersionFromDraft() {
     const id = uidFactory();
     const label = versionLabel.trim() || `Version ${new Date().toLocaleDateString()}`;
+
     setState((prev) => ({
       ...prev,
       cv: {
         ...prev.cv,
         currentVersionId: id,
-        versions: [{ id, label, createdAt: new Date().toISOString(), data: structuredClone(prev.cv.draft), aiFeedback: structuredClone(activeVersion?.aiFeedback || EMPTY_FEEDBACK) }, ...prev.cv.versions]
+        versions: [
+          {
+            id,
+            label,
+            createdAt: new Date().toISOString(),
+            data: structuredClone(prev.cv.draft),
+            aiFeedback: structuredClone(activeVersion?.aiFeedback || EMPTY_FEEDBACK)
+          },
+          ...prev.cv.versions
+        ]
       }
     }));
+
     setVersionLabel('');
-    setStatus('Version CV sauvegardee.');
+    setStatus('Nouvelle version creee depuis le brouillon.');
   }
 
-  function loadVersion(id: string) {
+  function loadVersion(versionId: string) {
     setState((prev) => {
-      const found = prev.cv.versions.find((x) => x.id === id);
-      if (!found) return prev;
-      return { ...prev, cv: { ...prev.cv, currentVersionId: id, draft: structuredClone(found.data) } };
+      const found = prev.cv.versions.find((v) => v.id === versionId);
+      if (!found) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        cv: {
+          ...prev.cv,
+          currentVersionId: found.id,
+          draft: structuredClone(found.data)
+        }
+      };
     });
-    setStatus('Version chargee.');
+
+    setStatus('Version chargee dans le brouillon.');
+  }
+
+  function renameVersion(versionId: string, label: string) {
+    const trimmed = label.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setState((prev) => ({
+      ...prev,
+      cv: {
+        ...prev.cv,
+        versions: prev.cv.versions.map((v) => (v.id === versionId ? { ...v, label: trimmed } : v))
+      }
+    }));
+  }
+
+  function duplicateVersion(versionId: string) {
+    setState((prev) => {
+      const found = prev.cv.versions.find((v) => v.id === versionId);
+      if (!found) {
+        return prev;
+      }
+
+      const clone: CvVersion = {
+        ...structuredClone(found),
+        id: uidFactory(),
+        label: `${found.label} (copie)`,
+        createdAt: new Date().toISOString()
+      };
+
+      return {
+        ...prev,
+        cv: {
+          ...prev.cv,
+          currentVersionId: clone.id,
+          draft: structuredClone(clone.data),
+          versions: [clone, ...prev.cv.versions]
+        }
+      };
+    });
+
+    setStatus('Version dupliquee.');
+  }
+
+  function deleteVersion(versionId: string) {
+    setState((prev) => {
+      if (prev.cv.versions.length <= 1) {
+        return prev;
+      }
+
+      const nextVersions = prev.cv.versions.filter((v) => v.id !== versionId);
+      if (nextVersions.length === prev.cv.versions.length) {
+        return prev;
+      }
+
+      const nextCurrent = nextVersions.some((v) => v.id === prev.cv.currentVersionId)
+        ? prev.cv.currentVersionId
+        : nextVersions[0].id;
+      const nextDraft = nextVersions.find((v) => v.id === nextCurrent)?.data || prev.cv.draft;
+
+      return {
+        ...prev,
+        cv: {
+          ...prev.cv,
+          versions: nextVersions,
+          currentVersionId: nextCurrent,
+          draft: structuredClone(nextDraft)
+        }
+      };
+    });
+
+    setStatus('Version supprimee.');
   }
 
   async function askFeedback(section: CvSection) {
     const apiKey = readApiKey(state);
-    if (!apiKey) {
-      setStatus('Ajoute une cle OpenAI dans Parametres.');
-      return;
-    }
 
     setFeedbackBusy(section);
     try {
@@ -149,16 +388,23 @@ export default function CvPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey,
+          ...(apiKey ? { apiKey } : {}),
           section,
           sectionData,
           jobContext: selectedApplication
-            ? { title: selectedApplication.title, company: selectedApplication.company, offerText: selectedApplication.offer.offerText }
+            ? {
+                title: selectedApplication.title,
+                company: selectedApplication.company,
+                offerText: selectedApplication.offer.offerText
+              }
             : undefined
         })
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Feedback indisponible');
+      if (!response.ok) {
+        throw new Error(data.error || 'Feedback indisponible');
+      }
 
       setState((prev) => ({
         ...prev,
@@ -166,11 +412,21 @@ export default function CvPage() {
           ...prev.cv,
           versions: prev.cv.versions.map((v) =>
             v.id === prev.cv.currentVersionId
-              ? { ...v, aiFeedback: { ...v.aiFeedback, [section]: [data.feedback, data.suggestedRewrite ? `\n\nSuggestion:\n${data.suggestedRewrite}` : ''].join('') } }
+              ? {
+                  ...v,
+                  aiFeedback: {
+                    ...v.aiFeedback,
+                    [section]: [
+                      data.feedback,
+                      data.suggestedRewrite ? `\n\nSuggestion:\n${data.suggestedRewrite}` : ''
+                    ].join('')
+                  }
+                }
               : v
           )
         }
       }));
+
       setStatus(`Feedback recu pour ${SECTION_LABELS[section]}.`);
     } catch (error) {
       setStatus(`Erreur feedback: ${(error as Error).message}`);
@@ -181,10 +437,6 @@ export default function CvPage() {
 
   async function optimizeCv() {
     const apiKey = readApiKey(state);
-    if (!apiKey) {
-      setStatus('Ajoute une cle OpenAI dans Parametres.');
-      return;
-    }
     if (!selectedApplication?.offer.offerText.trim()) {
       setStatus('Selectionne une candidature avec offre.');
       return;
@@ -195,10 +447,19 @@ export default function CvPage() {
       const response = await fetch('/api/ai/cv-optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, cvData: state.cv.draft, offerText: selectedApplication.offer.offerText, targetRole: selectedApplication.title })
+        body: JSON.stringify({
+          ...(apiKey ? { apiKey } : {}),
+          cvData: state.cv.draft,
+          offerText: selectedApplication.offer.offerText,
+          targetRole: selectedApplication.title
+        })
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Optimisation indisponible');
+      if (!response.ok) {
+        throw new Error(data.error || 'Optimisation indisponible');
+      }
+
       setOptimization(data as CvOptimizationResponse);
       setStatus('Optimisation terminee.');
     } catch (error) {
@@ -213,12 +474,17 @@ export default function CvPage() {
       const response = await fetch('/api/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: previewHtml, fileName: `${(state.cv.draft.personal.fullName || 'cv').replace(/\s+/g, '-').toLowerCase()}.pdf` })
+        body: JSON.stringify({
+          html: previewHtml,
+          fileName: `${(state.cv.draft.personal.fullName || 'cv').replace(/\s+/g, '-').toLowerCase()}.pdf`
+        })
       });
+
       if (!response.ok) {
         const payload = await response.json().catch(() => ({ error: 'Export PDF impossible' }));
         throw new Error(payload.error || 'Export PDF impossible');
       }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -238,21 +504,45 @@ export default function CvPage() {
         <div className="panel">
           <h1>CV Builder</h1>
           <p className="status">{status}</p>
-          <div className="actions" style={{ marginTop: 8 }}><button className="primary" onClick={exportPdf}>Exporter PDF</button></div>
+          <div className="actions" style={{ marginTop: 8 }}>
+            <button className="primary" onClick={exportPdf}>Exporter PDF</button>
+          </div>
         </div>
 
         <div className="panel section">
-          <h2>Versions CV</h2>
+          <h2>CRUD versions CV</h2>
           <div className="row">
-            <div className="field"><label>Nom de version</label><input value={versionLabel} onChange={(e) => setVersionLabel(e.target.value)} placeholder="CV - Entreprise X" /></div>
-            <div className="field"><label>&nbsp;</label><button className="primary" onClick={saveVersion}>Sauvegarder version</button></div>
+            <div className="field">
+              <label>Nom de la nouvelle version</label>
+              <input
+                value={versionLabel}
+                onChange={(e) => setVersionLabel(e.target.value)}
+                placeholder="CV - Entreprise X"
+              />
+            </div>
+            <div className="field">
+              <label>&nbsp;</label>
+              <button className="primary" onClick={createVersionFromDraft}>Creer version depuis brouillon</button>
+            </div>
           </div>
-          <div className="field">
-            <label>Version active</label>
-            <select value={state.cv.currentVersionId} onChange={(e) => loadVersion(e.target.value)}>
-              {state.cv.versions.map((v) => <option key={v.id} value={v.id}>{v.label} - {new Date(v.createdAt).toLocaleString()}</option>)}
-            </select>
-          </div>
+
+          {state.cv.versions.map((v) => (
+            <div className="card" key={v.id}>
+              <div className="field">
+                <label>Nom</label>
+                <input
+                  defaultValue={v.label}
+                  onBlur={(e) => renameVersion(v.id, e.target.value)}
+                />
+              </div>
+              <p className="status">{new Date(v.createdAt).toLocaleString()}</p>
+              <div className="actions">
+                <button onClick={() => loadVersion(v.id)}>{state.cv.currentVersionId === v.id ? 'Version active' : 'Charger'}</button>
+                <button onClick={() => duplicateVersion(v.id)}>Dupliquer</button>
+                <button className="danger" onClick={() => deleteVersion(v.id)} disabled={state.cv.versions.length <= 1}>Supprimer</button>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="panel section">
@@ -261,17 +551,25 @@ export default function CvPage() {
             <label>Candidature</label>
             <select value={selectedApplicationId} onChange={(e) => setSelectedApplicationId(e.target.value)}>
               <option value="">-- Selectionner --</option>
-              {state.applications.map((a) => <option key={a.id} value={a.id}>{a.title} - {a.company}</option>)}
+              {state.applications.map((a) => (
+                <option key={a.id} value={a.id}>{a.title} - {a.company}</option>
+              ))}
             </select>
           </div>
-          <div className="actions"><button className="primary" onClick={optimizeCv} disabled={optimizeBusy}>{optimizeBusy ? 'Analyse...' : 'Optimiser mon CV'}</button></div>
+          <div className="actions">
+            <button className="primary" onClick={optimizeCv} disabled={optimizeBusy}>
+              {optimizeBusy ? 'Analyse...' : 'Optimiser mon CV'}
+            </button>
+          </div>
           {optimization ? (
             <div className="card" style={{ marginTop: 8 }}>
               <strong>Score: {optimization.alignmentScore}/100</strong>
               {optimization.sectionRecommendations.map((r, idx) => (
                 <div key={`${r.section}_${idx}`} className="card">
                   <strong>{SECTION_LABELS[r.section]}</strong>
-                  <ul className="list">{r.actions.map((a, i) => <li key={`${a}_${i}`}>{a}</li>)}</ul>
+                  <ul className="list">
+                    {r.actions.map((a, i) => <li key={`${a}_${i}`}>{a}</li>)}
+                  </ul>
                 </div>
               ))}
             </div>
@@ -307,11 +605,56 @@ export default function CvPage() {
           {activeVersion?.aiFeedback.profile ? <div className="feedback">{activeVersion.aiFeedback.profile}</div> : null}
         </div>
 
-        <SectionExperience state={state} addExperience={addExperience} updateExperience={updateExperience} removeItem={removeItem} askFeedback={askFeedback} activeFeedback={activeVersion?.aiFeedback.experiences || ''} feedbackBusy={feedbackBusy} />
-        <SectionEducation state={state} addEducation={addEducation} updateEducation={updateEducation} removeItem={removeItem} askFeedback={askFeedback} activeFeedback={activeVersion?.aiFeedback.education || ''} feedbackBusy={feedbackBusy} />
-        <SectionSkills state={state} addSkill={addSkill} updateSkill={updateSkill} removeItem={removeItem} askFeedback={askFeedback} activeFeedback={activeVersion?.aiFeedback.skills || ''} feedbackBusy={feedbackBusy} />
-        <SectionLanguages state={state} addLanguage={addLanguage} updateLanguage={updateLanguage} removeItem={removeItem} askFeedback={askFeedback} activeFeedback={activeVersion?.aiFeedback.languages || ''} feedbackBusy={feedbackBusy} />
-        <SectionInterests state={state} addInterest={addInterest} updateInterest={updateInterest} removeItem={removeItem} askFeedback={askFeedback} activeFeedback={activeVersion?.aiFeedback.interests || ''} feedbackBusy={feedbackBusy} />
+        <SectionExperience
+          experiences={state.cv.draft.experiences}
+          onAdd={addExperience}
+          onUpdate={updateExperience}
+          onRemove={(id) => removeItem('experiences', id)}
+          onMove={moveExperience}
+          onAskFeedback={() => askFeedback('experiences')}
+          feedback={activeVersion?.aiFeedback.experiences || ''}
+          feedbackBusy={feedbackBusy === 'experiences'}
+        />
+
+        <SectionEducation
+          education={state.cv.draft.education}
+          onAdd={addEducation}
+          onUpdate={updateEducation}
+          onRemove={(id) => removeItem('education', id)}
+          onAskFeedback={() => askFeedback('education')}
+          feedback={activeVersion?.aiFeedback.education || ''}
+          feedbackBusy={feedbackBusy === 'education'}
+        />
+
+        <SectionSkills
+          skills={state.cv.draft.skills}
+          onAdd={addSkill}
+          onUpdate={updateSkill}
+          onRemove={(id) => removeItem('skills', id)}
+          onAskFeedback={() => askFeedback('skills')}
+          feedback={activeVersion?.aiFeedback.skills || ''}
+          feedbackBusy={feedbackBusy === 'skills'}
+        />
+
+        <SectionLanguages
+          languages={state.cv.draft.languages}
+          onAdd={addLanguage}
+          onUpdate={updateLanguage}
+          onRemove={(id) => removeItem('languages', id)}
+          onAskFeedback={() => askFeedback('languages')}
+          feedback={activeVersion?.aiFeedback.languages || ''}
+          feedbackBusy={feedbackBusy === 'languages'}
+        />
+
+        <SectionInterests
+          interests={state.cv.draft.interests}
+          onAdd={addInterest}
+          onUpdate={updateInterest}
+          onRemove={(id) => removeItem('interests', id)}
+          onAskFeedback={() => askFeedback('interests')}
+          feedback={activeVersion?.aiFeedback.interests || ''}
+          feedbackBusy={feedbackBusy === 'interests'}
+        />
       </section>
 
       <section className="preview-wrap">
@@ -322,62 +665,259 @@ export default function CvPage() {
   );
 }
 
-function SectionExperience({ state, addExperience, updateExperience, removeItem, askFeedback, activeFeedback, feedbackBusy }: {
-  state: ReturnType<typeof useAppStore>['state'];
-  addExperience: () => void;
-  updateExperience: (id: string, patch: Partial<ExperienceItem>) => void;
-  removeItem: (type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) => void;
-  askFeedback: (section: CvSection) => void;
-  activeFeedback: string;
-  feedbackBusy: CvSection | null;
+function SectionExperience({
+  experiences,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onMove,
+  onAskFeedback,
+  feedback,
+  feedbackBusy
+}: {
+  experiences: ExperienceItem[];
+  onAdd: () => void;
+  onUpdate: (id: string, patch: Partial<ExperienceItem>) => void;
+  onRemove: (id: string) => void;
+  onMove: (id: string, direction: 'up' | 'down') => void;
+  onAskFeedback: () => void;
+  feedback: string;
+  feedbackBusy: boolean;
 }) {
-  return <div className="panel section"><h2>Experiences</h2>{state.cv.draft.experiences.map((item, idx)=><div className="card" key={item.id}><div className="actions" style={{justifyContent:'space-between'}}><strong>Experience {idx+1}</strong><button className="danger" onClick={()=>removeItem('experiences', item.id)}>Supprimer</button></div><div className="row"><div className="field"><label>Entreprise</label><input value={item.company} onChange={(e)=>updateExperience(item.id,{company:e.target.value})} /></div><div className="field"><label>Poste</label><input value={item.role} onChange={(e)=>updateExperience(item.id,{role:e.target.value})} /></div></div><div className="row"><div className="field"><label>Debut</label><input value={item.startDate} onChange={(e)=>updateExperience(item.id,{startDate:e.target.value})} /></div><div className="field"><label>Fin</label><input value={item.endDate} onChange={(e)=>updateExperience(item.id,{endDate:e.target.value})} /></div></div><div className="field"><label>Lieu</label><input value={item.location} onChange={(e)=>updateExperience(item.id,{location:e.target.value})} /></div><div className="field"><label>Description</label><textarea value={item.description} onChange={(e)=>updateExperience(item.id,{description:e.target.value})} /></div><div className="field"><label>Highlights (1 ligne = 1 puce)</label><textarea value={item.highlights.join('\n')} onChange={(e)=>updateExperience(item.id,{highlights:e.target.value.split('\n').map((x)=>x.trim()).filter(Boolean)})} /></div></div>)}<div className="actions"><button onClick={addExperience}>Ajouter experience</button><button onClick={()=>askFeedback('experiences')} disabled={feedbackBusy==='experiences'}>Feedback IA</button></div>{activeFeedback ? <div className="feedback">{activeFeedback}</div> : null}</div>;
+  return (
+    <div className="panel section">
+      <h2>Experiences</h2>
+      {experiences.map((item, idx) => (
+        <div className={`card ${item.hidden ? 'card-hidden' : ''}`} key={item.id}>
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
+            <strong>Experience {idx + 1}</strong>
+            <div className="actions">
+              <button onClick={() => onMove(item.id, 'up')} disabled={idx === 0}>Monter</button>
+              <button onClick={() => onMove(item.id, 'down')} disabled={idx === experiences.length - 1}>Descendre</button>
+              <button className="warning" onClick={() => onUpdate(item.id, { hidden: !item.hidden })}>
+                {item.hidden ? '👁 Afficher' : '👁 Masquer'}
+              </button>
+              <button className="danger" onClick={() => onRemove(item.id)}>Supprimer</button>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="field"><label>Entreprise</label><input value={item.company} onChange={(e) => onUpdate(item.id, { company: e.target.value })} /></div>
+            <div className="field"><label>Poste</label><input value={item.role} onChange={(e) => onUpdate(item.id, { role: e.target.value })} /></div>
+          </div>
+          <div className="row">
+            <div className="field"><label>Debut</label><input value={item.startDate} onChange={(e) => onUpdate(item.id, { startDate: e.target.value })} /></div>
+            <div className="field"><label>Fin</label><input value={item.endDate} onChange={(e) => onUpdate(item.id, { endDate: e.target.value })} /></div>
+          </div>
+          <div className="field"><label>Lieu</label><input value={item.location} onChange={(e) => onUpdate(item.id, { location: e.target.value })} /></div>
+          <div className="field"><label>Description</label><textarea value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} /></div>
+          <div className="field">
+            <label>Highlights (1 ligne = 1 puce)</label>
+            <textarea
+              value={item.highlights.join('\n')}
+              onChange={(e) => onUpdate(item.id, { highlights: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+            />
+          </div>
+          {item.hidden ? <p className="status">Cette experience est masquee dans le rendu final.</p> : null}
+        </div>
+      ))}
+
+      <div className="actions">
+        <button onClick={onAdd}>Ajouter experience</button>
+        <button onClick={onAskFeedback} disabled={feedbackBusy}>Feedback IA</button>
+      </div>
+      {feedback ? <div className="feedback">{feedback}</div> : null}
+    </div>
+  );
 }
 
-function SectionEducation({ state, addEducation, updateEducation, removeItem, askFeedback, activeFeedback, feedbackBusy }: {
-  state: ReturnType<typeof useAppStore>['state'];
-  addEducation: () => void;
-  updateEducation: (id: string, patch: Partial<EducationItem>) => void;
-  removeItem: (type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) => void;
-  askFeedback: (section: CvSection) => void;
-  activeFeedback: string;
-  feedbackBusy: CvSection | null;
+function SectionEducation({
+  education,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onAskFeedback,
+  feedback,
+  feedbackBusy
+}: {
+  education: EducationItem[];
+  onAdd: () => void;
+  onUpdate: (id: string, patch: Partial<EducationItem>) => void;
+  onRemove: (id: string) => void;
+  onAskFeedback: () => void;
+  feedback: string;
+  feedbackBusy: boolean;
 }) {
-  return <div className="panel section"><h2>Formation</h2>{state.cv.draft.education.map((item, idx)=><div className="card" key={item.id}><div className="actions" style={{justifyContent:'space-between'}}><strong>Formation {idx+1}</strong><button className="danger" onClick={()=>removeItem('education', item.id)}>Supprimer</button></div><div className="row"><div className="field"><label>Institution</label><input value={item.institution} onChange={(e)=>updateEducation(item.id,{institution:e.target.value})} /></div><div className="field"><label>Diplome</label><input value={item.degree} onChange={(e)=>updateEducation(item.id,{degree:e.target.value})} /></div></div><div className="row"><div className="field"><label>Domaine</label><input value={item.field} onChange={(e)=>updateEducation(item.id,{field:e.target.value})} /></div><div className="field"><label>Debut</label><input value={item.startDate} onChange={(e)=>updateEducation(item.id,{startDate:e.target.value})} /></div></div><div className="row"><div className="field"><label>Fin</label><input value={item.endDate} onChange={(e)=>updateEducation(item.id,{endDate:e.target.value})} /></div><div className="field"><label>Description</label><input value={item.description} onChange={(e)=>updateEducation(item.id,{description:e.target.value})} /></div></div></div>)}<div className="actions"><button onClick={addEducation}>Ajouter formation</button><button onClick={()=>askFeedback('education')} disabled={feedbackBusy==='education'}>Feedback IA</button></div>{activeFeedback ? <div className="feedback">{activeFeedback}</div> : null}</div>;
+  return (
+    <div className="panel section">
+      <h2>Formation</h2>
+      {education.map((item, idx) => (
+        <div className="card" key={item.id}>
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
+            <strong>Formation {idx + 1}</strong>
+            <button className="danger" onClick={() => onRemove(item.id)}>Supprimer</button>
+          </div>
+          <div className="row">
+            <div className="field"><label>Institution</label><input value={item.institution} onChange={(e) => onUpdate(item.id, { institution: e.target.value })} /></div>
+            <div className="field"><label>Diplome</label><input value={item.degree} onChange={(e) => onUpdate(item.id, { degree: e.target.value })} /></div>
+          </div>
+          <div className="row">
+            <div className="field"><label>Domaine</label><input value={item.field} onChange={(e) => onUpdate(item.id, { field: e.target.value })} /></div>
+            <div className="field"><label>Debut</label><input value={item.startDate} onChange={(e) => onUpdate(item.id, { startDate: e.target.value })} /></div>
+          </div>
+          <div className="row">
+            <div className="field"><label>Fin</label><input value={item.endDate} onChange={(e) => onUpdate(item.id, { endDate: e.target.value })} /></div>
+            <div className="field"><label>Description</label><input value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} /></div>
+          </div>
+        </div>
+      ))}
+
+      <div className="actions">
+        <button onClick={onAdd}>Ajouter formation</button>
+        <button onClick={onAskFeedback} disabled={feedbackBusy}>Feedback IA</button>
+      </div>
+      {feedback ? <div className="feedback">{feedback}</div> : null}
+    </div>
+  );
 }
 
-function SectionSkills({ state, addSkill, updateSkill, removeItem, askFeedback, activeFeedback, feedbackBusy }: {
-  state: ReturnType<typeof useAppStore>['state'];
-  addSkill: () => void;
-  updateSkill: (id: string, patch: Partial<SkillItem>) => void;
-  removeItem: (type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) => void;
-  askFeedback: (section: CvSection) => void;
-  activeFeedback: string;
-  feedbackBusy: CvSection | null;
+function SectionSkills({
+  skills,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onAskFeedback,
+  feedback,
+  feedbackBusy
+}: {
+  skills: SkillItem[];
+  onAdd: () => void;
+  onUpdate: (id: string, patch: Partial<SkillItem>) => void;
+  onRemove: (id: string) => void;
+  onAskFeedback: () => void;
+  feedback: string;
+  feedbackBusy: boolean;
 }) {
-  return <div className="panel section"><h2>Competences</h2>{state.cv.draft.skills.map((item, idx)=><div className="card" key={item.id}><div className="actions" style={{justifyContent:'space-between'}}><strong>Competence {idx+1}</strong><button className="danger" onClick={()=>removeItem('skills', item.id)}>Supprimer</button></div><div className="row"><div className="field"><label>Nom</label><input value={item.name} onChange={(e)=>updateSkill(item.id,{name:e.target.value})} /></div><div className="field"><label>Niveau</label><select value={item.level} onChange={(e)=>updateSkill(item.id,{level:e.target.value as SkillItem['level']})}><option value="">-</option><option value="beginner">beginner</option><option value="intermediate">intermediate</option><option value="advanced">advanced</option><option value="expert">expert</option></select></div></div></div>)}<div className="actions"><button onClick={addSkill}>Ajouter competence</button><button onClick={()=>askFeedback('skills')} disabled={feedbackBusy==='skills'}>Feedback IA</button></div>{activeFeedback ? <div className="feedback">{activeFeedback}</div> : null}</div>;
+  return (
+    <div className="panel section">
+      <h2>Competences</h2>
+      {skills.map((item, idx) => (
+        <div className="card" key={item.id}>
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
+            <strong>Competence {idx + 1}</strong>
+            <button className="danger" onClick={() => onRemove(item.id)}>Supprimer</button>
+          </div>
+          <div className="row">
+            <div className="field"><label>Nom</label><input value={item.name} onChange={(e) => onUpdate(item.id, { name: e.target.value })} /></div>
+            <div className="field">
+              <label>Niveau</label>
+              <select value={item.level} onChange={(e) => onUpdate(item.id, { level: e.target.value as SkillItem['level'] })}>
+                <option value="">-</option>
+                <option value="beginner">beginner</option>
+                <option value="intermediate">intermediate</option>
+                <option value="advanced">advanced</option>
+                <option value="expert">expert</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="actions">
+        <button onClick={onAdd}>Ajouter competence</button>
+        <button onClick={onAskFeedback} disabled={feedbackBusy}>Feedback IA</button>
+      </div>
+      {feedback ? <div className="feedback">{feedback}</div> : null}
+    </div>
+  );
 }
 
-function SectionLanguages({ state, addLanguage, updateLanguage, removeItem, askFeedback, activeFeedback, feedbackBusy }: {
-  state: ReturnType<typeof useAppStore>['state'];
-  addLanguage: () => void;
-  updateLanguage: (id: string, patch: Partial<LanguageItem>) => void;
-  removeItem: (type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) => void;
-  askFeedback: (section: CvSection) => void;
-  activeFeedback: string;
-  feedbackBusy: CvSection | null;
+function SectionLanguages({
+  languages,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onAskFeedback,
+  feedback,
+  feedbackBusy
+}: {
+  languages: LanguageItem[];
+  onAdd: () => void;
+  onUpdate: (id: string, patch: Partial<LanguageItem>) => void;
+  onRemove: (id: string) => void;
+  onAskFeedback: () => void;
+  feedback: string;
+  feedbackBusy: boolean;
 }) {
-  return <div className="panel section"><h2>Langues</h2>{state.cv.draft.languages.map((item, idx)=><div className="card" key={item.id}><div className="actions" style={{justifyContent:'space-between'}}><strong>Langue {idx+1}</strong><button className="danger" onClick={()=>removeItem('languages', item.id)}>Supprimer</button></div><div className="row"><div className="field"><label>Nom</label><input value={item.name} onChange={(e)=>updateLanguage(item.id,{name:e.target.value})} /></div><div className="field"><label>Niveau</label><select value={item.level} onChange={(e)=>updateLanguage(item.id,{level:e.target.value as LanguageItem['level']})}><option value="">-</option><option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option><option value="C2">C2</option><option value="Native">Native</option></select></div></div></div>)}<div className="actions"><button onClick={addLanguage}>Ajouter langue</button><button onClick={()=>askFeedback('languages')} disabled={feedbackBusy==='languages'}>Feedback IA</button></div>{activeFeedback ? <div className="feedback">{activeFeedback}</div> : null}</div>;
+  return (
+    <div className="panel section">
+      <h2>Langues</h2>
+      {languages.map((item, idx) => (
+        <div className="card" key={item.id}>
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
+            <strong>Langue {idx + 1}</strong>
+            <button className="danger" onClick={() => onRemove(item.id)}>Supprimer</button>
+          </div>
+          <div className="row">
+            <div className="field"><label>Nom</label><input value={item.name} onChange={(e) => onUpdate(item.id, { name: e.target.value })} /></div>
+            <div className="field">
+              <label>Niveau</label>
+              <select value={item.level} onChange={(e) => onUpdate(item.id, { level: e.target.value as LanguageItem['level'] })}>
+                <option value="">-</option>
+                <option value="A1">A1</option>
+                <option value="A2">A2</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="Native">Native</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="actions">
+        <button onClick={onAdd}>Ajouter langue</button>
+        <button onClick={onAskFeedback} disabled={feedbackBusy}>Feedback IA</button>
+      </div>
+      {feedback ? <div className="feedback">{feedback}</div> : null}
+    </div>
+  );
 }
 
-function SectionInterests({ state, addInterest, updateInterest, removeItem, askFeedback, activeFeedback, feedbackBusy }: {
-  state: ReturnType<typeof useAppStore>['state'];
-  addInterest: () => void;
-  updateInterest: (id: string, patch: Partial<InterestItem>) => void;
-  removeItem: (type: 'experiences' | 'education' | 'skills' | 'languages' | 'interests', id: string) => void;
-  askFeedback: (section: CvSection) => void;
-  activeFeedback: string;
-  feedbackBusy: CvSection | null;
+function SectionInterests({
+  interests,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onAskFeedback,
+  feedback,
+  feedbackBusy
+}: {
+  interests: InterestItem[];
+  onAdd: () => void;
+  onUpdate: (id: string, patch: Partial<InterestItem>) => void;
+  onRemove: (id: string) => void;
+  onAskFeedback: () => void;
+  feedback: string;
+  feedbackBusy: boolean;
 }) {
-  return <div className="panel section"><h2>Interets</h2>{state.cv.draft.interests.map((item, idx)=><div className="card" key={item.id}><div className="actions" style={{justifyContent:'space-between'}}><strong>Interet {idx+1}</strong><button className="danger" onClick={()=>removeItem('interests', item.id)}>Supprimer</button></div><div className="field"><label>Nom</label><input value={item.name} onChange={(e)=>updateInterest(item.id,{name:e.target.value})} /></div></div>)}<div className="actions"><button onClick={addInterest}>Ajouter interet</button><button onClick={()=>askFeedback('interests')} disabled={feedbackBusy==='interests'}>Feedback IA</button></div>{activeFeedback ? <div className="feedback">{activeFeedback}</div> : null}</div>;
+  return (
+    <div className="panel section">
+      <h2>Interets</h2>
+      {interests.map((item, idx) => (
+        <div className="card" key={item.id}>
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
+            <strong>Interet {idx + 1}</strong>
+            <button className="danger" onClick={() => onRemove(item.id)}>Supprimer</button>
+          </div>
+          <div className="field"><label>Nom</label><input value={item.name} onChange={(e) => onUpdate(item.id, { name: e.target.value })} /></div>
+        </div>
+      ))}
+      <div className="actions">
+        <button onClick={onAdd}>Ajouter interet</button>
+        <button onClick={onAskFeedback} disabled={feedbackBusy}>Feedback IA</button>
+      </div>
+      {feedback ? <div className="feedback">{feedback}</div> : null}
+    </div>
+  );
 }

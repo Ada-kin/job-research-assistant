@@ -18,21 +18,46 @@ const AppStoreContext = createContext<AppStoreContextValue | null>(null);
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => createInitialState());
   const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState('Pret.');
+  const [status, setStatus] = useState('Chargement...');
 
   useEffect(() => {
-    setState(loadState());
-    setReady(true);
+    if (window.location.pathname === '/login') {
+      setReady(true);
+      setStatus('Pret.');
+      return;
+    }
+
+    let active = true;
+
+    loadState().then((nextState) => {
+      if (!active) {
+        return;
+      }
+      setState(nextState);
+      setReady(true);
+      setStatus('Pret.');
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!ready) {
       return;
     }
+    if (window.location.pathname === '/login') {
+      return;
+    }
 
-    const timer = window.setTimeout(() => {
-      persistState(state);
-      setStatus(`Sauvegarde: ${new Date().toLocaleTimeString()}`);
+    const timer = window.setTimeout(async () => {
+      try {
+        await persistState(state);
+        setStatus(`Sauvegarde: ${new Date().toLocaleTimeString()}`);
+      } catch {
+        setStatus('Erreur de sauvegarde.');
+      }
     }, 300);
 
     return () => window.clearTimeout(timer);

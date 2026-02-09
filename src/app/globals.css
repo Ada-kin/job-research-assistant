@@ -207,6 +207,12 @@ iframe {
 
 .list { margin: 0; padding-left: 18px; }
 
+.card-hidden {
+  opacity: 0.55;
+  border-style: dashed;
+  background: #f8fafc;
+}
+
 @media (max-width: 1120px) {
   .main { grid-template-columns: 1fr; }
   .left { max-height: none; }
