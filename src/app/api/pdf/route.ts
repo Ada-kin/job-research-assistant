@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/auth';
+import { getCurrentUserId } from '@/lib/auth-guard';
 
 const schema = z.object({
   html: z.string().min(50).max(900000),
@@ -28,8 +28,8 @@ function hasExternalAssets(html: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

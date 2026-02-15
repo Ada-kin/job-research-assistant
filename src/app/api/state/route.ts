@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { getCurrentUserId } from '@/lib/auth-guard';
 import { getUserState, persistUserState } from '@/lib/server-state';
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const state = await getUserState(session.user.id);
+  const state = await getUserState(userId);
   return NextResponse.json({ state });
 }
 
 export async function PUT(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const result = await persistUserState(session.user.id, payload.state as Record<string, unknown>);
+    const result = await persistUserState(userId, payload.state as Record<string, unknown>);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });

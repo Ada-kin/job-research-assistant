@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
+import { isAuthDisabledForLocal } from '@/lib/auth-mode';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -25,6 +26,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     authorized({ auth: session, request }) {
+      if (isAuthDisabledForLocal()) {
+        return true;
+      }
+
       const { pathname } = request.nextUrl;
       const isLoggedIn = Boolean(session?.user);
       const isAuthRoute = pathname.startsWith('/api/auth');

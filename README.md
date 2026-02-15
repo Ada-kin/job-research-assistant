@@ -31,11 +31,23 @@ npm run dev
 ```
 
 Puis ouvrir `http://localhost:3000`.
+Landing marketing: `http://localhost:3000/landing`.
+
+## Landing (Ladder)
+
+- Fichier principal: `src/app/(marketing)/landing/page.tsx`
+- Styles: `src/app/(marketing)/landing/landing.module.css`
+- Layout dedie landing: `src/app/(marketing)/layout.tsx`
+- Layout app (dashboard/topbar): `src/app/(app)/layout.tsx`
+- Nom produit (temporaire): constante `PRODUCT_NAME` dans `src/app/(marketing)/landing/page.tsx`
+- Pricing: constante `PRICING` dans `src/app/(marketing)/landing/page.tsx`
+- Tracking CTA: fonction `track(eventName, payload)` dans `src/app/(marketing)/landing/page.tsx`
 
 ## Variables d'environnement (optionnel)
 
 - `DATABASE_URL` (obligatoire)
 - `AUTH_SECRET` (obligatoire)
+- `DISABLE_AUTH_LOCAL` (optionnel, `true` uniquement en local/dev pour bypass login)
 - `GOOGLE_CLIENT_ID` (obligatoire)
 - `GOOGLE_CLIENT_SECRET` (obligatoire)
 - `OPENAI_KEY_ENCRYPTION_SECRET` (obligatoire, 32 bytes utf8 ou base64)

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/auth';
+import { getCurrentUserId } from '@/lib/auth-guard';
 import { mapOpenAIError, requestFeedback } from '@/lib/openai';
 import { resolveUserOpenAiApiKey } from '@/lib/server-state';
 
@@ -18,14 +18,14 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const payload = schema.parse(await request.json());
-    const apiKey = await resolveUserOpenAiApiKey(session.user.id, payload.apiKey);
+    const apiKey = await resolveUserOpenAiApiKey(userId, payload.apiKey);
     if (!apiKey) {
       return NextResponse.json({ error: 'OpenAI API key missing. Save it in settings.' }, { status: 400 });
     }

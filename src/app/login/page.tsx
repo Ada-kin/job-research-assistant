@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/auth';
+import { isAuthDisabledForLocal } from '@/lib/auth-mode';
 
 export default async function LoginPage() {
+  if (isAuthDisabledForLocal()) {
+    redirect('/');
+  }
+
   const session = await auth();
   if (session?.user) {
     redirect('/');
