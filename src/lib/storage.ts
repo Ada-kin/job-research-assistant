@@ -119,6 +119,9 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultTone: 'NEUTRE'
 };
 
+const INITIAL_VERSION_ID = 'initial-version';
+const INITIAL_TIMESTAMP = '1970-01-01T00:00:00.000Z';
+
 function normalizeCvData(input?: Partial<CvData> & Record<string, unknown>): CvData {
   const experiences = Array.isArray(input?.experiences)
     ? input.experiences.map((item) => normalizeExperience(item))
@@ -206,16 +209,16 @@ function normalizeCoverLetter(item: Partial<CoverLetter>): CoverLetter {
 
 export function createInitialState(): AppState {
   const initialVersion: CvVersion = {
-    id: uid(),
+    id: INITIAL_VERSION_ID,
     label: 'Base',
-    createdAt: nowIso(),
+    createdAt: INITIAL_TIMESTAMP,
     data: deepClone(DEFAULT_CV),
     aiFeedback: deepClone(EMPTY_FEEDBACK)
   };
 
   return {
     version: '2.0',
-    updatedAt: nowIso(),
+    updatedAt: INITIAL_TIMESTAMP,
     settings: deepClone(DEFAULT_SETTINGS),
     cv: {
       draft: deepClone(DEFAULT_CV),

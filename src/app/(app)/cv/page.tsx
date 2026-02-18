@@ -25,6 +25,16 @@ const SECTION_LABELS: Record<CvSection, string> = {
   interests: 'Interets'
 };
 
+function formatUtcDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Date inconnue';
+  }
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} UTC`;
+}
+
 export default function CvPage() {
   const { state, setState, status, setStatus } = useAppStore();
 
@@ -535,7 +545,7 @@ export default function CvPage() {
                   onBlur={(e) => renameVersion(v.id, e.target.value)}
                 />
               </div>
-              <p className="status">{new Date(v.createdAt).toLocaleString()}</p>
+              <p className="status">{formatUtcDateTime(v.createdAt)}</p>
               <div className="actions">
                 <button onClick={() => loadVersion(v.id)}>{state.cv.currentVersionId === v.id ? 'Version active' : 'Charger'}</button>
                 <button onClick={() => duplicateVersion(v.id)}>Dupliquer</button>

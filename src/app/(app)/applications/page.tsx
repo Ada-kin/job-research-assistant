@@ -14,6 +14,16 @@ const STATUS_OPTIONS: ApplicationStatus[] = [
   'DECLINE'
 ];
 
+function formatUtcDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Date inconnue';
+  }
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} UTC`;
+}
+
 export default function ApplicationsPage() {
   const { state, setState, status, setStatus } = useAppStore();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -179,7 +189,7 @@ export default function ApplicationsPage() {
 
         {state.coverLetters.filter((l) => !selectedApplicationId || l.applicationId === selectedApplicationId).map((letter) => (
           <div key={letter.id} className="card">
-            <p className="status">{new Date(letter.createdAt).toLocaleString()} - CV {letter.cvVersionId.slice(0, 8)}</p>
+            <p className="status">{formatUtcDateTime(letter.createdAt)} - CV {letter.cvVersionId.slice(0, 8)}</p>
             <textarea value={letter.content} onChange={(e) => {
               const value = e.target.value;
               setState((prev) => ({
