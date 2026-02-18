@@ -33,6 +33,19 @@ npm run dev
 Puis ouvrir `http://localhost:3000`.
 Landing marketing: `http://localhost:3000/landing`.
 
+## Script de lancement (local/prod)
+
+```bash
+# Local: demarre postgres + gotenberg, prepare Prisma, puis lance l'app
+./scripts/start.sh local
+
+# Prod: lance le deploiement Ansible
+./scripts/start.sh prod
+
+# Prod (dry-run)
+./scripts/start.sh prod-check
+```
+
 ## Landing (Ladder)
 
 - Fichier principal: `src/app/(marketing)/landing/page.tsx`
@@ -47,6 +60,7 @@ Landing marketing: `http://localhost:3000/landing`.
 
 - `DATABASE_URL` (obligatoire)
 - `AUTH_SECRET` (obligatoire)
+- `AUTH_DEBUG` (optionnel, `true` pour logs auth server-side en debug)
 - `DISABLE_AUTH_LOCAL` (optionnel, `true` uniquement en local/dev pour bypass login)
 - `GOOGLE_CLIENT_ID` (obligatoire)
 - `GOOGLE_CLIENT_SECRET` (obligatoire)

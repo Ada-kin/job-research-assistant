@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/auth';
 import { isAuthDisabledForLocal } from '@/lib/auth-mode';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LoginPage() {
   if (isAuthDisabledForLocal()) {
     redirect('/');

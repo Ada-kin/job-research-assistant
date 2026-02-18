@@ -3,9 +3,11 @@ import { AppStoreProvider } from '@/lib/app-store';
 import { auth, signOut } from '@/auth';
 import { isAuthDisabledForLocal } from '@/lib/auth-mode';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const bypassAuth = isAuthDisabledForLocal();
-  const session = await auth();
+  const session = bypassAuth ? null : await auth();
   const isLoggedIn = bypassAuth || Boolean(session?.user);
 
   return (
