@@ -1,0 +1,8 @@
+- name: Deploy cv-builder
+  hosts: vps
+  become: true
+  vars_files:
+    - group_vars/all.yml
+  roles:
+    - base
+    - deploy

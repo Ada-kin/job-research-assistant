@@ -1,0 +1,32 @@
+- name: Update apt cache
+  ansible.builtin.command:
+    cmd: apt-get update
+  changed_when: false
+
+- name: Install base packages
+  ansible.builtin.command:
+    cmd: >-
+      apt-get install -y
+      ca-certificates curl git gnupg python3-pip
+      docker-compose-plugin nginx certbot python3-certbot-nginx
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Ensure docker is started
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Stop and disable caddy if present
+  ansible.builtin.systemd:
+    name: caddy
+    enabled: false
+    state: stopped
+  failed_when: false
+
+- name: Ensure nginx is started
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started

@@ -1,0 +1,92 @@
+- name: Create app directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create app source directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}/app"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Sync project to VPS
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -az
+      - --delete
+      - --exclude=.git
+      - --exclude=node_modules
+      - --exclude=.next
+      - --exclude=.env
+      - --exclude=ansible
+      - "{{ local_project_path }}/"
+      - "{{ ansible_user }}@{{ ansible_host | default(inventory_hostname) }}:{{ app_dir }}/app/"
+  delegate_to: localhost
+  become: false
+  when: deploy_mode == "local_sync"
+
+- name: Checkout application repository
+  ansible.builtin.git:
+    repo: "{{ app_repo_url }}"
+    dest: "{{ app_dir }}/app"
+    version: "{{ app_repo_version }}"
+    force: true
+  when: deploy_mode != "local_sync"
+
+- name: Write app env file
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: "{{ app_dir }}/app/.env"
+    mode: "0600"
+
+- name: Write production compose file
+  ansible.builtin.template:
+    src: docker-compose.prod.yml.j2
+    dest: "{{ app_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Deploy nginx vhost
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/{{ app_name }}.conf
+    mode: "0644"
+  notify: reload nginx
+
+- name: Enable nginx vhost
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ app_name }}.conf
+    dest: /etc/nginx/sites-enabled/{{ app_name }}.conf
+    state: link
+  notify: reload nginx
+
+- name: Remove default nginx vhost
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Flush handlers before certbot
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure TLS certificate is present
+  ansible.builtin.command:
+    cmd: >-
+      certbot --nginx --non-interactive --agree-tos
+      -m {{ app_email }}
+      -d {{ app_domain }}
+      --redirect
+
+- name: Start application stack
+  ansible.builtin.command:
+    cmd: docker compose up -d --build
+    chdir: "{{ app_dir }}"
+
+- name: Ensure certbot renewal timer is enabled
+  ansible.builtin.systemd:
+    name: certbot.timer
+    enabled: true
+    state: started

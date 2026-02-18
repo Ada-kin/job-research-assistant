@@ -1,0 +1,27 @@
+app_domain: os-job-searcg.duckdns.org
+app_email: antoine.fernandez@rubrash.com
+
+app_name: cv-builder
+app_dir: /opt/cv-builder
+deploy_mode: local_sync
+local_project_path: /Users/antoinefernandez/Dev/perso/cv-builder
+app_repo_url: https://github.com/your-org/cv-builder.git
+app_repo_version: main
+
+app_port: 3000
+postgres_port: 5432
+gotenberg_port: 3001
+
+postgres_user: postgres
+postgres_password: postgres
+postgres_db: job_research_assistant
+
+auth_secret: REPLACE_WITH_AUTH_SECRET
+google_client_id: REPLACE_WITH_GOOGLE_CLIENT_ID
+google_client_secret: REPLACE_WITH_GOOGLE_CLIENT_SECRET
+openai_key_encryption_secret: REPLACE_WITH_OPENAI_KEY_ENCRYPTION_SECRET
+next_public_stripe_checkout_url: ""
+
+openai_model: gpt-4.1-mini
+openai_timeout_ms: 20000
+pdf_timeout_ms: 15000

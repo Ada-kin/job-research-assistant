@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: {{ app_dir }}/app
+      dockerfile: Dockerfile
+    container_name: {{ app_name }}-app
+    restart: unless-stopped
+    env_file:
+      - {{ app_dir }}/app/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+    ports:
+      - "127.0.0.1:{{ app_port }}:3000"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: {{ app_name }}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: {{ postgres_user }}
+      POSTGRES_PASSWORD: {{ postgres_password }}
+      POSTGRES_DB: {{ postgres_db }}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: {{ app_name }}-gotenberg
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
