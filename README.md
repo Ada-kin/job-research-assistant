@@ -46,30 +46,25 @@ Landing marketing: `http://localhost:3000/landing`.
 ./scripts/start.sh prod-check
 ```
 
-## Deploiement automatique sur `main` (GitHub Actions)
+## Deploiement auto apres push `main` (hook Git local + rsync)
 
-Un workflow est configure dans:
-- `.github/workflows/deploy.yml`
+Le deploiement est declenche localement apres un `git push` de `main`, via le hook:
+- `.githooks/post-push`
 
-Il se declenche a chaque `push` sur `main` (et manuellement via `workflow_dispatch`) puis execute le playbook Ansible sur ton VPS.
+Ce hook lance:
+- `scripts/deploy-on-push.sh`
+- puis `./scripts/start.sh prod` (Ansible en `local_sync`, donc transfert `rsync` depuis le poste local vers le VPS).
 
-Secrets GitHub a ajouter dans le repo (`Settings > Secrets and variables > Actions`):
+Activation sur ce poste:
 
-- `VPS_HOST` (ex: `198.7.118.126`)
-- `VPS_USER` (ex: `root`)
-- `VPS_SSH_PRIVATE_KEY` (cle privee SSH du VPS)
-- `APP_DOMAIN`
-- `APP_EMAIL`
-- `POSTGRES_PASSWORD`
-- `AUTH_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `OPENAI_KEY_ENCRYPTION_SECRET`
-- `NEXT_PUBLIC_STRIPE_CHECKOUT_URL` (optionnel)
+```bash
+git config core.hooksPath .githooks
+```
 
-Important:
-- le VPS doit pouvoir `git clone/pull` ce repository (repo public, ou acces git configure sur le serveur si prive).
-- le workflow force un mode de deploiement Ansible base sur le checkout Git (pas `local_sync`).
+Comportement:
+- push de `main` -> deploiement auto
+- push d'une autre branche -> rien
+- pour skipper ponctuellement: `SKIP_AUTO_DEPLOY=true git push`
 
 ## Landing (Ladder)
 
