@@ -46,6 +46,31 @@ Landing marketing: `http://localhost:3000/landing`.
 ./scripts/start.sh prod-check
 ```
 
+## Deploiement automatique sur `main` (GitHub Actions)
+
+Un workflow est configure dans:
+- `.github/workflows/deploy.yml`
+
+Il se declenche a chaque `push` sur `main` (et manuellement via `workflow_dispatch`) puis execute le playbook Ansible sur ton VPS.
+
+Secrets GitHub a ajouter dans le repo (`Settings > Secrets and variables > Actions`):
+
+- `VPS_HOST` (ex: `198.7.118.126`)
+- `VPS_USER` (ex: `root`)
+- `VPS_SSH_PRIVATE_KEY` (cle privee SSH du VPS)
+- `APP_DOMAIN`
+- `APP_EMAIL`
+- `POSTGRES_PASSWORD`
+- `AUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `OPENAI_KEY_ENCRYPTION_SECRET`
+- `NEXT_PUBLIC_STRIPE_CHECKOUT_URL` (optionnel)
+
+Important:
+- le VPS doit pouvoir `git clone/pull` ce repository (repo public, ou acces git configure sur le serveur si prive).
+- le workflow force un mode de deploiement Ansible base sur le checkout Git (pas `local_sync`).
+
 ## Landing (Ladder)
 
 - Fichier principal: `src/app/(marketing)/landing/page.tsx`

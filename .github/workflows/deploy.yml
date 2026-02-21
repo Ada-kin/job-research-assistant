@@ -1,0 +1,94 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Configure SSH key
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf "%s\n" "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Add VPS host to known_hosts
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Build Ansible inventory
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          cat > inventory.ini <<EOF
+          [vps]
+          target ansible_host=${VPS_HOST} ansible_user=${VPS_USER} ansible_python_interpreter=/usr/bin/python3 ansible_ssh_private_key_file=~/.ssh/id_ed25519
+          EOF
+
+      - name: Build deployment variables
+        env:
+          APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
+          APP_EMAIL: ${{ secrets.APP_EMAIL }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OPENAI_KEY_ENCRYPTION_SECRET: ${{ secrets.OPENAI_KEY_ENCRYPTION_SECRET }}
+          NEXT_PUBLIC_STRIPE_CHECKOUT_URL: ${{ secrets.NEXT_PUBLIC_STRIPE_CHECKOUT_URL }}
+          APP_REPO_URL: https://github.com/${{ github.repository }}.git
+          APP_REPO_VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          payload = {
+              "deploy_mode": "github_checkout",
+              "app_domain": os.environ["APP_DOMAIN"],
+              "app_email": os.environ["APP_EMAIL"],
+              "app_repo_url": os.environ["APP_REPO_URL"],
+              "app_repo_version": os.environ["APP_REPO_VERSION"],
+              "postgres_password": os.environ["POSTGRES_PASSWORD"],
+              "auth_secret": os.environ["AUTH_SECRET"],
+              "google_client_id": os.environ["GOOGLE_CLIENT_ID"],
+              "google_client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
+              "openai_key_encryption_secret": os.environ["OPENAI_KEY_ENCRYPTION_SECRET"],
+              "next_public_stripe_checkout_url": os.environ.get("NEXT_PUBLIC_STRIPE_CHECKOUT_URL", ""),
+          }
+
+          with open("extra-vars.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f)
+          PY
+
+      - name: Run Ansible playbook
+        run: |
+          ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i inventory.ini ansible/playbook.yml -e @extra-vars.json
