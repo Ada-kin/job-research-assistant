@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/app-store';
 import { EMPTY_FEEDBACK, readApiKey, uidFactory } from '@/lib/storage';
 import { renderCvHtml } from '@/lib/cv-html';
+import { isNewUiEnabledClient } from '@/lib/feature-flags';
+import { NewCvListPage } from '@/components/new-ui/cv-list-page';
 import type {
   CvOptimizationResponse,
   CvSection,
@@ -36,6 +38,10 @@ function formatUtcDateTime(value: string): string {
 }
 
 export default function CvPage() {
+  if (isNewUiEnabledClient()) {
+    return <NewCvListPage />;
+  }
+
   const { state, setState, status, setStatus } = useAppStore();
 
   const [versionLabel, setVersionLabel] = useState('');

@@ -46,10 +46,10 @@ Landing marketing: `http://localhost:3000/landing`.
 ./scripts/start.sh prod-check
 ```
 
-## Deploiement auto apres push `main` (hook Git local + rsync)
+## Deploiement auto avant push `main` (hook Git local + rsync)
 
-Le deploiement est declenche localement apres un `git push` de `main`, via le hook:
-- `.githooks/post-push`
+Le deploiement est declenche localement avant un `git push` de `main`, via le hook:
+- `.githooks/pre-push`
 
 Ce hook lance:
 - `scripts/deploy-on-push.sh`
@@ -62,7 +62,7 @@ git config core.hooksPath .githooks
 ```
 
 Comportement:
-- push de `main` -> deploiement auto
+- push de `main` -> deploiement auto (si le deploiement echoue, le push est bloque)
 - push d'une autre branche -> rien
 - pour skipper ponctuellement: `SKIP_AUTO_DEPLOY=true git push`
 
@@ -89,6 +89,13 @@ Comportement:
 - `PDF_TIMEOUT_MS` (defaut: `15000`)
 - `OPENAI_MODEL` (defaut: `gpt-4.1-mini`)
 - `OPENAI_TIMEOUT_MS` (defaut: `20000`)
+- `NEXT_PUBLIC_NEW_UI_ENABLED` (optionnel, `true` pour activer la nouvelle UX/UI; rollback immediat en repassant a `false`)
+
+## Migration UX/UI
+
+- Mapping canonique des adaptations UI/data: `docs/ui-migration-mapping.md`
+- Le backend (`/api/state`, `/api/ai/*`, `/api/pdf`, Prisma, NextAuth) reste identique.
+- Le switch se fait via le feature flag `NEXT_PUBLIC_NEW_UI_ENABLED`.
 
 ## Endpoints
 

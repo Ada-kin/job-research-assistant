@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/app-store';
 import { readApiKey, uidFactory } from '@/lib/storage';
+import { isNewUiEnabledClient } from '@/lib/feature-flags';
+import { NewApplicationsListPage } from '@/components/new-ui/applications-list-page';
 import type { ApplicationRecord, ApplicationStatus, CoverLetter } from '@/lib/types';
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
@@ -25,6 +27,10 @@ function formatUtcDateTime(value: string): string {
 }
 
 export default function ApplicationsPage() {
+  if (isNewUiEnabledClient()) {
+    return <NewApplicationsListPage />;
+  }
+
   const { state, setState, status, setStatus } = useAppStore();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [search, setSearch] = useState('');

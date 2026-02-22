@@ -15,7 +15,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="dashboard">
+    <main className="legacy-ui dashboard">
       <section className="panel">
         <h1>Connexion</h1>
         <p className="status">Connecte-toi avec Google pour acceder a ton espace.</p>

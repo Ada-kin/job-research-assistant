@@ -3,8 +3,18 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/app-store';
+import { isNewUiEnabledClient } from '@/lib/feature-flags';
+import { NewDashboardPage } from '@/components/new-ui/dashboard-page';
 
 export default function DashboardPage() {
+  if (isNewUiEnabledClient()) {
+    return <NewDashboardPage />;
+  }
+
+  return <LegacyDashboardPage />;
+}
+
+function LegacyDashboardPage() {
   const { state, status } = useAppStore();
 
   const stats = useMemo(() => {
